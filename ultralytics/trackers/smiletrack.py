@@ -6,7 +6,7 @@ from collections import deque
 from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
-from ultralytics.trackers.utils.downloads import safe_download
+from ultralytics.utils.downloads import safe_download
 from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
