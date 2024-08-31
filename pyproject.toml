@@ -123,6 +123,8 @@ extra = [
     "ipython", # interactive notebook
     "albumentations>=1.4.6", # training augmentations
     "pycocotools>=2.0.7", # COCO mAP
+    "thop",
+    "lapx",
 ]
 
 [project.urls]

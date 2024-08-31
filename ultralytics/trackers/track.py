@@ -10,9 +10,10 @@ from ultralytics.utils.checks import check_yaml
 
 from .bot_sort import BOTSORT
 from .byte_tracker import BYTETracker
+from .smiletrack import SMILEtrack
 
 # A mapping of tracker types to corresponding tracker classes
-TRACKER_MAP = {"bytetrack": BYTETracker, "botsort": BOTSORT}
+TRACKER_MAP = {"bytetrack": BYTETracker, "botsort": BOTSORT, "smiletrack": SMILEtrack}
 
 
 def on_predict_start(predictor: object, persist: bool = False) -> None:
