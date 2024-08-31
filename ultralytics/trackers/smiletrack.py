@@ -257,7 +257,7 @@ class SMILEtrack(object):
 
         self.frame_id = 0
         self.args = args
-        self.device = args.device
+        self.device = ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.track_high_thresh = args.track_high_thresh
         self.track_low_thresh = args.track_low_thresh
