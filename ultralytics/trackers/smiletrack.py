@@ -259,7 +259,7 @@ class SMILEtrack(object):
 
         if len(output_results):
             #Переопределние инициализации на формат Ultralytics
-            bboxes = output_results.xyxy
+            bboxes = output_results.xywh
             bboxes = np.concatenate([bboxes, np.arange(len(bboxes)).reshape(-1, 1)], axis=-1)
             scores = output_results.conf
             classes = output_results.cls
