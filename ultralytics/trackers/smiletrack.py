@@ -87,6 +87,9 @@ class SMTrack(STrack):
             self.update_features(feat)
         self.features = deque([], maxlen=feat_history)
         self.alpha = 0.9
+        self.class_ids = -1
+        self.cls_hist = []  # (cls id, freq)
+        self.update_cls(cls, score)
 
     def update_features(self, feat):
         """Update the feature vector and apply exponential moving average smoothing."""
@@ -98,6 +101,26 @@ class SMTrack(STrack):
             self.smooth_feat = self.alpha * self.smooth_feat + (1 - self.alpha) * feat
         self.features.append(feat)
         self.smooth_feat /= np.linalg.norm(self.smooth_feat)
+
+    def update_cls(self, class_ids, score):
+        """Updates the class ID and score for the track."""
+        if len(self.cls_hist) > 0:
+            max_freq = 0
+            found = False
+            for c in self.cls_hist:
+                if class_ids == c[0]:
+                    c[1] += score
+                    found = True
+
+                if c[1] > max_freq:
+                    max_freq = c[1]
+                    self.class_ids = c[0]
+            if not found:
+                self.cls_hist.append([class_ids, score])
+                self.class_ids = class_ids
+        else:
+            self.cls_hist.append([class_ids, score])
+            self.class_ids = class_ids
 
     def predict(self):
         """Predicts the object's future state using the Kalman filter to update its mean and covariance."""
@@ -127,6 +150,27 @@ class SMTrack(STrack):
             return self._tlwh.copy()
         ret = self.mean[:4].copy()
         ret[:2] -= ret[2:] / 2
+        return ret
+
+    @property
+    def tlbr(self):
+        """Convert bounding box to format (min x, min y, max x, max y), i.e., (top left, bottom right)."""
+        ret = self.tlwh.copy()
+        ret[2:] += ret[:2]
+        return ret
+
+     @staticmethod
+    def tlbr_to_tlwh(tlbr):
+        """Converts top-left bottom-right format to top-left width height format."""
+        ret = np.asarray(tlbr).copy()
+        ret[2:] -= ret[:2]
+        return ret
+
+    @staticmethod
+    def tlwh_to_tlbr(tlwh):
+        """Converts tlwh bounding box format to tlbr format."""
+        ret = np.asarray(tlwh).copy()
+        ret[2:] += ret[:2]
         return ret
 
     @staticmethod
