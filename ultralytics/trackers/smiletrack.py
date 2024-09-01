@@ -151,27 +151,32 @@ class STrack(BaseTrack):
 
     def update(self, new_track, frame_id):
         """
-        Update a matched track
-        :type new_track: STrack
-        :type frame_id: int
-        :type update_feature: bool
-        :return:
+        Update the state of a matched track.
+
+        Args:
+            new_track (STrack): The new track containing updated information.
+            frame_id (int): The ID of the current frame.
+
+        Examples:
+            Update the state of a track with new detection information
+            >>> track = STrack([100, 200, 50, 80, 0.9, 1])
+            >>> new_track = STrack([105, 205, 55, 85, 0.95, 1])
+            >>> track.update(new_track, 2)
         """
         self.frame_id = frame_id
         self.tracklet_len += 1
 
         new_tlwh = new_track.tlwh
-
-        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance, self.tlwh_to_xywh(new_tlwh))
-
-        if new_track.curr_feat is not None:
-            self.update_features(new_track.curr_feat)
-
+        self.mean, self.covariance = self.kalman_filter.update(
+            self.mean, self.covariance, self.convert_coords(new_tlwh)
+        )
         self.state = TrackState.Tracked
         self.is_activated = True
 
         self.score = new_track.score
-        self.update_cls(new_track.cls, new_track.score)
+        self.cls = new_track.cls
+        self.angle = new_track.angle
+        self.idx = new_track.idx
 
     @property
     def tlwh(self):
