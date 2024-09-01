@@ -284,13 +284,8 @@ class SMILEtrack(object):
         #         safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
         #                       self.weight_path)
         if self.args.with_reid:
-            tmp = tempfile.NamedTemporaryFile(delete=False)
-            try:
-                tmp.write(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
-            finally:
-                self.encoder = load_model(tmp.read())
-                tmp.close()
-                os.unlink(tmp.name)
+            tmp_obj = BytesIO(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
+            self.encoder = load_model(tmp_obj)
 
             if self.device == 'cuda' or self.device == 'cuda:0':
                 self.encoder = self.encoder.to(torch.device('cuda:0'))
