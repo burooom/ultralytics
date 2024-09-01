@@ -257,7 +257,7 @@ class SMILEtrack(object):
         removed_stracks = []
         features_keep = None
 
-        if len(output_results):
+        if len(results):
             #Переопределние инициализации на формат Ultralytics
             bboxes = results.xywhr if hasattr(results, "xywhr") else results.xywh
             bboxes = np.concatenate([bboxes, np.arange(len(bboxes)).reshape(-1, 1)], axis=-1)
