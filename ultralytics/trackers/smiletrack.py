@@ -2,9 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
-import tempfile
-import os
-
+from io import BytesIO
 from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
