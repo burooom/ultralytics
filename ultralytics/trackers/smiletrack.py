@@ -81,26 +81,26 @@ class STrack(BaseTrack):
             self.cls = cls
 
     def predict(self):
+        """Predicts the next state (mean and covariance) of the object using the Kalman filter."""
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
-            mean_state[6] = 0
             mean_state[7] = 0
-
         self.mean, self.covariance = self.kalman_filter.predict(mean_state, self.covariance)
 
     @staticmethod
     def multi_predict(stracks):
-        if len(stracks) > 0:
-            multi_mean = np.asarray([st.mean.copy() for st in stracks])
-            multi_covariance = np.asarray([st.covariance for st in stracks])
-            for i, st in enumerate(stracks):
-                if st.state != TrackState.Tracked:
-                    multi_mean[i][6] = 0
-                    multi_mean[i][7] = 0
-            multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
-            for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
-                stracks[i].mean = mean
-                stracks[i].covariance = cov
+        """Perform multi-object predictive tracking using Kalman filter for the provided list of STrack instances."""
+        if len(stracks) <= 0:
+            return
+        multi_mean = np.asarray([st.mean.copy() for st in stracks])
+        multi_covariance = np.asarray([st.covariance for st in stracks])
+        for i, st in enumerate(stracks):
+            if st.state != TrackState.Tracked:
+                multi_mean[i][7] = 0
+        multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
+        for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
+            stracks[i].mean = mean
+            stracks[i].covariance = cov
 
     @staticmethod
     def multi_gmc(stracks, H=np.eye(2, 3)):
@@ -135,10 +135,9 @@ class STrack(BaseTrack):
         self.start_frame = frame_id
 
     def re_activate(self, new_track, frame_id, new_id=False):
-
-        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance, self.tlwh_to_xywh(new_track.tlwh))
-        if new_track.curr_feat is not None:
-            self.update_features(new_track.curr_feat)
+        """Reactivates a previously lost track with a new detection."""
+        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance,
+                                                               self.convert_coords(new_track.tlwh))
         self.tracklet_len = 0
         self.state = TrackState.Tracked
         self.is_activated = True
@@ -146,8 +145,8 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
-
-        self.update_cls(new_track.cls, new_track.score)
+        self.cls = new_track.cls
+        self.idx = new_track.idx
 
     def update(self, new_track, frame_id):
         """
