@@ -69,7 +69,7 @@ class STrack(BaseTrack):
         self.tracklet_len = 0
         self.cls = cls
         self.idx = tlwh[-1]
-        self.xyxy = tlwh[:-1])
+        self.xyxy = tlwh[:-1]
         self.angle = tlwh[4] if len(tlwh) == 6 else None
 
         # SMILE FEATURES
