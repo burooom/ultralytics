@@ -163,7 +163,7 @@ class SMILEtrack(object):
         self.tracked_stracks = []  # type: list[STrack]
         self.lost_stracks = []  # type: list[STrack]
         self.removed_stracks = []  # type: list[STrack]
-        BaseTrack.reset_id()
+        self.reset_id()
 
         self.frame_id = 0
         self.args = args
