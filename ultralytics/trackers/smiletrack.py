@@ -178,6 +178,10 @@ class STrack(BaseTrack):
         self.angle = new_track.angle
         self.idx = new_track.idx
 
+    def convert_coords(self, tlwh):
+        """Convert a bounding box's top-left-width-height format to its x-y-angle-height equivalent."""
+        return self.tlwh_to_xyah(tlwh)
+
     @property
     def tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
