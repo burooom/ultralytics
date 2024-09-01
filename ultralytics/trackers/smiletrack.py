@@ -80,6 +80,7 @@ class SMTrack(STrack):
         """
         super().__init__(tlwh, score, cls)
 
+        self._tlwh = np.asarray(self.tlbr_to_tlwh(tlwh[:-1]), dtype=np.float32)
         self.smooth_feat = None
         self.curr_feat = None
         if feat is not None:
@@ -259,7 +260,7 @@ class SMILEtrack(object):
 
         if len(results):
             #Переопределние инициализации на формат Ultralytics
-            bboxes = results.xywhr if hasattr(results, "xywhr") else results.xywh
+            bboxes = results.xyxy
             bboxes = np.concatenate([bboxes, np.arange(len(bboxes)).reshape(-1, 1)], axis=-1)
             scores = results.conf
             classes = results.cls
