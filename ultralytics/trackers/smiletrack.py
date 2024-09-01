@@ -271,14 +271,18 @@ class SMILEtrack(object):
         # Переопределение обработки параметров для ReID
         self.proximity_thresh = args.proximity_thresh
         self.appearance_thresh = args.appearance_thresh
+        if args.weight_path is not None:
+            self.weight_path = args.weight_path
+        else:
+            self.weight_path = './sm_weights/ver12.pt'
 
         if self.args.with_reid:
-            self.weight_path = args.weight_path
             # check if self.weight_path is exists if not asset
-            if self.weight_path is None:
+            if not os.path.exists(self.weight_path):
                 safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
                               self.weight_path)
             self.encoder = load_model(self.weight_path)
+
             if self.device == 'cuda' or self.device == 'cuda:0':
                 self.encoder = self.encoder.to(torch.device('cuda:0'))
             else:
