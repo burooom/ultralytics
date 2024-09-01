@@ -7,7 +7,7 @@ from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
 from ultralytics.utils.downloads import safe_download
-from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYAH as KalmanFilter
+from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
 from ultralytics.trackers.SLM import load_model
@@ -137,7 +137,7 @@ class STrack(BaseTrack):
     def re_activate(self, new_track, frame_id, new_id=False):
         """Reactivates a previously lost track with a new detection."""
         self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance,
-                                                               self.convert_coords(new_track.tlwh))
+                                                               new_track.tlwh)
         self.tracklet_len = 0
         self.state = TrackState.Tracked
         self.is_activated = True
