@@ -285,8 +285,7 @@ class SMILEtrack(object):
             cur_dir = os.path.dirname(__file__)
             self.weight_path = os.path.join(cur_dir, 'ver12.pt')
             if not os.path.exists(self.weight_path):
-                safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
-                              self.weight_path)
+                safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view', dir=cur_dir)
             self.encoder = load_model(self.weight_path)
 
             if self.device == 'cuda' or self.device == 'cuda:0':
