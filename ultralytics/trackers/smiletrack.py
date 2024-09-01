@@ -403,6 +403,11 @@ class SMILEtrack(object):
             dists = np.minimum(dists, emb_dists)
         return dists
 
+    @staticmethod
+    def reset_id():
+        """Resets the ID counter for SMTrack instances to ensure unique track IDs across tracking sessions."""
+        SMTrack.reset_id()
+
 
     #Добавление общих фукнций в методы класса
     @staticmethod
