@@ -24,7 +24,7 @@ def extract_image_patches(image, bboxes):
 
 
 # Определение класса для обработки единичных объектов
-class BOTrack(STrack):
+class SMTrack(STrack):
     """
     An extended version of the STrack class for YOLOv8, adding object tracking features.
 
@@ -32,7 +32,7 @@ class BOTrack(STrack):
     smoothing, Kalman filter prediction, and reactivation of tracks.
 
     Attributes:
-        shared_kalman (KalmanFilterXYWH): A shared Kalman filter for all instances of BOTrack.
+        shared_kalman (KalmanFilterXYWH): A shared Kalman filter for all instances of SMTrack.
         smooth_feat (np.ndarray): Smoothed feature vector.
         curr_feat (np.ndarray): Current feature vector.
         features (deque): A deque to store feature vectors with a maximum length defined by `feat_history`.
@@ -51,18 +51,18 @@ class BOTrack(STrack):
         tlwh_to_xywh(tlwh): Convert bounding box to xywh format `(center x, center y, width, height)`.
 
     Examples:
-        Create a BOTrack instance and update its features
-        >>> bo_track = BOTrack(tlwh=[100, 50, 80, 40], score=0.9, cls=1, feat=np.random.rand(128))
-        >>> bo_track.predict()
-        >>> new_track = BOTrack(tlwh=[110, 60, 80, 40], score=0.85, cls=1, feat=np.random.rand(128))
-        >>> bo_track.update(new_track, frame_id=2)
+        Create a SMTrack instance and update its features
+        >>> sm_track = SMTrack(tlwh=[100, 50, 80, 40], score=0.9, cls=1, feat=np.random.rand(128))
+        >>> sm_track.predict()
+        >>> new_track = SMTrack(tlwh=[110, 60, 80, 40], score=0.85, cls=1, feat=np.random.rand(128))
+        >>> sm_track.update(new_track, frame_id=2)
     """
 
     shared_kalman = KalmanFilterXYWH()
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
         """
-        Initialize a BOTrack object with temporal parameters, such as feature history, alpha, and current features.
+        Initialize a SMTrack object with temporal parameters, such as feature history, alpha, and current features.
 
         Args:
             tlwh (np.ndarray): Bounding box coordinates in tlwh format (top left x, top left y, width, height).
@@ -72,12 +72,12 @@ class BOTrack(STrack):
             feat_history (int): Maximum length of the feature history deque.
 
         Examples:
-            Initialize a BOTrack object with bounding box, score, class ID, and feature vector
+            Initialize a SMTrack object with bounding box, score, class ID, and feature vector
             >>> tlwh = np.array([100, 50, 80, 120])
             >>> score = 0.9
             >>> cls = 1
             >>> feat = np.random.rand(128)
-            >>> bo_track = BOTrack(tlwh, score, cls, feat)
+            >>> sm_track = SMTrack(tlwh, score, cls, feat)
         """
         super().__init__(tlwh, score, cls)
 
@@ -140,7 +140,7 @@ class BOTrack(STrack):
             if st.state != TrackState.Tracked:
                 multi_mean[i][6] = 0
                 multi_mean[i][7] = 0
-        multi_mean, multi_covariance = BOTrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
+        multi_mean, multi_covariance = SMTrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
         for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
             stracks[i].mean = mean
             stracks[i].covariance = cov
@@ -272,12 +272,12 @@ class SMILEtrack(object):
         strack_pool = self.joint_stracks(tracked_stracks, self.lost_stracks)
 
         # Predict the current location with KF
-        STrack.multi_predict(strack_pool)
+        SMTrack.multi_predict(strack_pool)
 
         # Fix camera motion
         warp = self.gmc.apply(img, dets)
-        STrack.multi_gmc(strack_pool, warp)
-        STrack.multi_gmc(unconfirmed, warp)
+        SMTrack.multi_gmc(strack_pool, warp)
+        SMTrack.multi_gmc(unconfirmed, warp)
 
         dists = self.get_dists(strack_pool, detections)
 
@@ -381,9 +381,9 @@ class SMILEtrack(object):
         if len(dets) > 0:
             """Detections."""
             if self.args.with_reid and features is not None:
-                detections = [STrack(xyxy, s, c, f) for (xyxy, s, c, f) in zip(dets, scores, cls, features)]
+                detections = [SMTrack(xyxy, s, c, f) for (xyxy, s, c, f) in zip(dets, scores, cls, features)]
             else:
-                detections = [STrack(xyxy, s, c) for (xyxy, s, c) in zip(dets, scores, cls)]
+                detections = [SMTrack(xyxy, s, c) for (xyxy, s, c) in zip(dets, scores, cls)]
         else:
             detections = []
 
