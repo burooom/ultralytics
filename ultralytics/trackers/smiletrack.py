@@ -60,7 +60,7 @@ class STrack(BaseTrack):
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
         """Initialize new STrack instance."""
-        self._tlwh = np.asarray(self.tlbr_to_tlwh(tlwh[:-1]), dtype=np.float32)
+        self._tlwh = np.asarray(tlwh[:-1]), dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -69,7 +69,6 @@ class STrack(BaseTrack):
         self.tracklet_len = 0
         self.cls = cls
         self.idx = tlwh[-1]
-        self.xyxy = tlwh[:-1]
         self.angle = tlwh[4] if len(tlwh) == 6 else None
 
         # SMILE FEATURES
@@ -207,11 +206,19 @@ class STrack(BaseTrack):
         """Convert a bounding box's top-left-width-height format to its x-y-angle-height equivalent."""
         return self.tlwh_to_xywh(tlwh)
 
+
     @staticmethod
     def tlwh_to_xywh(tlwh):
         """Convert bounding box from tlwh (top-left-width-height) to xywh (center-x-center-y-width-height) format."""
         ret = np.asarray(tlwh).copy()
         ret[:2] += ret[2:] / 2
+        return ret
+
+    @property
+    def xyxy(self):
+        """Converts bounding box from (top left x, top left y, width, height) to (min x, min y, max x, max y) format."""
+        ret = self.tlwh.copy()
+        ret[2:] += ret[:2]
         return ret
 
     @property
