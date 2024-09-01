@@ -7,7 +7,7 @@ from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
 from ultralytics.utils.downloads import safe_download
-from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
+from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYAH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
 from ultralytics.trackers.SLM import load_model
@@ -23,33 +23,64 @@ def extract_image_patches(image, bboxes):
 
 # Определение класса для обработки единичных объектов
 class STrack(BaseTrack):
-    shared_kalman = KalmanFilter()
+    """
+    Single object tracking representation that uses Kalman filtering for state estimation.
+
+    This class is responsible for storing all the information regarding individual tracklets and performs state updates
+    and predictions based on Kalman filter.
+
+    Attributes:
+        shared_kalman (KalmanFilterXYAH): Shared Kalman filter that is used across all STrack instances for prediction.
+        _tlwh (np.ndarray): Private attribute to store top-left corner coordinates and width and height of bounding box.
+        kalman_filter (KalmanFilterXYAH): Instance of Kalman filter used for this particular object track.
+        mean (np.ndarray): Mean state estimate vector.
+        covariance (np.ndarray): Covariance of state estimate.
+        is_activated (bool): Boolean flag indicating if the track has been activated.
+        score (float): Confidence score of the track.
+        tracklet_len (int): Length of the tracklet.
+        cls (any): Class label for the object.
+        idx (int): Index or identifier for the object.
+        frame_id (int): Current frame ID.
+        start_frame (int): Frame where the object was first detected.
+
+    Methods:
+        predict(): Predict the next state of the object using Kalman filter.
+        multi_predict(stracks): Predict the next states for multiple tracks.
+        multi_gmc(stracks, H): Update multiple track states using a homography matrix.
+        activate(kalman_filter, frame_id): Activate a new tracklet.
+        re_activate(new_track, frame_id, new_id): Reactivate a previously lost tracklet.
+        update(new_track, frame_id): Update the state of a matched track.
+        convert_coords(tlwh): Convert bounding box to x-y-angle-height format.
+        tlwh_to_xyah(tlwh): Convert tlwh bounding box to xyah format.
+        tlbr_to_tlwh(tlbr): Convert tlbr bounding box to tlwh format.
+        tlwh_to_tlbr(tlwh): Convert tlwh bounding box to tlbr format.
+    """
+
+    shared_kalman = KalmanFilterXYAH()
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
-
-        # wait activate
+        """Initialize new STrack instance."""
         self._tlwh = np.asarray(self.tlbr_to_tlwh(tlwh[:-1]), dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
 
-        self.cls = -1
-        self.cls_hist = []  # (cls id, freq)
-        self.update_cls(cls, score)
-
         self.score = score
         self.tracklet_len = 0
+        self.cls = cls
+        self.idx = tlwh[-1]
 
+        # SMILE FEATURES
+        self.features = deque([], maxlen=feat_history)
+        self.class_ids = -1
+        self.cls_hist = []  # (cls id, freq)
+        self.update_cls(cls, score)
         self.smooth_feat = None
         self.curr_feat = None
-        #Добавление отслеживания признаков
-        self.features = deque([], maxlen=feat_history)
         if feat is not None:
             self.update_features(feat)
+
         self.alpha = 0.9
-        #Добавление отслеживания индексов и угла
-        self.idx = tlwh[-1]
-        self.angle = tlwh[4] if len(tlwh) == 6 else None
 
     def update_features(self, feat):
         feat /= np.linalg.norm(feat)
@@ -61,27 +92,28 @@ class STrack(BaseTrack):
         self.features.append(feat)
         self.smooth_feat /= np.linalg.norm(self.smooth_feat)
 
-    def update_cls(self, cls, score):
+    def update_cls(self, class_ids, score):
+        """Updates the class ID and score for the track."""
         if len(self.cls_hist) > 0:
             max_freq = 0
             found = False
             for c in self.cls_hist:
-                if cls == c[0]:
+                if class_ids == c[0]:
                     c[1] += score
                     found = True
 
                 if c[1] > max_freq:
                     max_freq = c[1]
-                    self.cls = c[0]
+                    self.class_ids = c[0]
             if not found:
-                self.cls_hist.append([cls, score])
-                self.cls = cls
+                self.cls_hist.append([class_ids, score])
+                self.class_ids = class_ids
         else:
-            self.cls_hist.append([cls, score])
-            self.cls = cls
+            self.cls_hist.append([class_ids, score])
+            self.class_ids = class_ids
 
     def predict(self):
-        """Predicts the next state (mean and covariance) of the object using the Kalman filter."""
+        """Predicts mean and covariance using Kalman filter."""
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
             mean_state[7] = 0
@@ -89,7 +121,7 @@ class STrack(BaseTrack):
 
     @staticmethod
     def multi_predict(stracks):
-        """Perform multi-object predictive tracking using Kalman filter for the provided list of STrack instances."""
+        """Perform multi-object predictive tracking using Kalman filter for given stracks."""
         if len(stracks) <= 0:
             return
         multi_mean = np.asarray([st.mean.copy() for st in stracks])
@@ -104,6 +136,7 @@ class STrack(BaseTrack):
 
     @staticmethod
     def multi_gmc(stracks, H=np.eye(2, 3)):
+        """Update state tracks positions and covariances using a homography matrix."""
         if len(stracks) > 0:
             multi_mean = np.asarray([st.mean.copy() for st in stracks])
             multi_covariance = np.asarray([st.covariance for st in stracks])
@@ -121,11 +154,10 @@ class STrack(BaseTrack):
                 stracks[i].covariance = cov
 
     def activate(self, kalman_filter, frame_id):
-        """Start a new tracklet"""
+        """Start a new tracklet."""
         self.kalman_filter = kalman_filter
         self.track_id = self.next_id()
-
-        self.mean, self.covariance = self.kalman_filter.initiate(self.tlwh_to_xywh(self._tlwh))
+        self.mean, self.covariance = self.kalman_filter.initiate(self.convert_coords(self._tlwh))
 
         self.tracklet_len = 0
         self.state = TrackState.Tracked
@@ -137,7 +169,7 @@ class STrack(BaseTrack):
     def re_activate(self, new_track, frame_id, new_id=False):
         """Reactivates a previously lost track with a new detection."""
         self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance,
-                                                               new_track.tlwh)
+                                                               self.convert_coords(new_track.tlwh))
         self.tracklet_len = 0
         self.state = TrackState.Tracked
         self.is_activated = True
@@ -155,26 +187,18 @@ class STrack(BaseTrack):
         Args:
             new_track (STrack): The new track containing updated information.
             frame_id (int): The ID of the current frame.
-
-        Examples:
-            Update the state of a track with new detection information
-            >>> track = STrack([100, 200, 50, 80, 0.9, 1])
-            >>> new_track = STrack([105, 205, 55, 85, 0.95, 1])
-            >>> track.update(new_track, 2)
         """
         self.frame_id = frame_id
         self.tracklet_len += 1
 
         new_tlwh = new_track.tlwh
-        self.mean, self.covariance = self.kalman_filter.update(
-            self.mean, self.covariance, self.convert_coords(new_tlwh)
-        )
+        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance,
+                                                               self.convert_coords(new_tlwh))
         self.state = TrackState.Tracked
         self.is_activated = True
 
         self.score = new_track.score
         self.cls = new_track.cls
-        self.angle = new_track.angle
         self.idx = new_track.idx
 
     def convert_coords(self, tlwh):
@@ -183,44 +207,25 @@ class STrack(BaseTrack):
 
     @property
     def tlwh(self):
-        """Get current position in bounding box format `(top left x, top left y,
-                width, height)`.
-        """
+        """Get current position in bounding box format (top left x, top left y, width, height)."""
         if self.mean is None:
             return self._tlwh.copy()
         ret = self.mean[:4].copy()
+        ret[2] *= ret[3]
         ret[:2] -= ret[2:] / 2
         return ret
 
     @property
     def tlbr(self):
-        """Convert bounding box to format `(min x, min y, max x, max y)`, i.e.,
-        `(top left, bottom right)`.
-        """
+        """Convert bounding box to format (min x, min y, max x, max y), i.e., (top left, bottom right)."""
         ret = self.tlwh.copy()
         ret[2:] += ret[:2]
-        return ret
-
-    @property
-    def xyxy(self):
-        """Converts bounding box from (top left x, top left y, width, height) to (min x, min y, max x, max y) format."""
-        ret = self.tlwh.copy()
-        ret[2:] += ret[:2]
-        return ret
-
-    @property
-    def xywh(self):
-        """Convert bounding box to format `(min x, min y, max x, max y)`, i.e.,
-        `(top left, bottom right)`.
-        """
-        ret = self.tlwh.copy()
-        ret[:2] += ret[2:] / 2.0
         return ret
 
     @staticmethod
     def tlwh_to_xyah(tlwh):
-        """Convert bounding box to format `(center x, center y, aspect ratio,
-        height)`, where the aspect ratio is `width / height`.
+        """Convert bounding box to format (center x, center y, aspect ratio, height), where the aspect ratio is width /
+        height.
         """
         ret = np.asarray(tlwh).copy()
         ret[:2] += ret[2:] / 2
@@ -228,31 +233,22 @@ class STrack(BaseTrack):
         return ret
 
     @staticmethod
-    def tlwh_to_xywh(tlwh):
-        """Convert bounding box to format `(center x, center y, width,
-        height)`.
-        """
-        ret = np.asarray(tlwh).copy()
-        ret[:2] += ret[2:] / 2
-        return ret
-
-    def to_xywh(self):
-        return self.tlwh_to_xywh(self.tlwh)
-
-    @staticmethod
     def tlbr_to_tlwh(tlbr):
+        """Converts top-left bottom-right format to top-left width height format."""
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
         return ret
 
     @staticmethod
     def tlwh_to_tlbr(tlwh):
+        """Converts tlwh bounding box format to tlbr format."""
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
         return ret
 
     def __repr__(self):
-        return 'OT_{}_({}-{})'.format(self.track_id, self.start_frame, self.end_frame)
+        """Return a string representation of the BYTETracker object with start and end frames and track ID."""
+        return f'OT_{self.track_id}_({self.start_frame}-{self.end_frame})'
 
 
 class SMILEtrack(object):
