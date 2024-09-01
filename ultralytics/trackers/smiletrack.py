@@ -1,8 +1,8 @@
-import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
+from io import BytesIO
 
 from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
@@ -277,12 +277,15 @@ class SMILEtrack(object):
         # else:
         #     self.weight_path = './sm_weights/ver12.pt'
         #
-        if self.args.with_reid:
+        # if self.args.with_reid:
         #     # check if self.weight_path is exists if not asset
         #     if not os.path.exists(self.weight_path):
         #         safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
         #                       self.weight_path)
-            self.encoder = load_model(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
+        if self.args.with_reid:
+            tmp_obj = BytesIO()
+            tmp_obj.write(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
+            self.encoder = load_model(tmp_obj.read())
 
             if self.device == 'cuda' or self.device == 'cuda:0':
                 self.encoder = self.encoder.to(torch.device('cuda:0'))
