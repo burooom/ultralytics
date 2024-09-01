@@ -249,7 +249,7 @@ class SMILEtrack(object):
 
         self.gmc = GMC(method=args.gmc_method)
 
-    def update(self, output_results, img):
+    def update(self, results, img):
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
@@ -259,10 +259,10 @@ class SMILEtrack(object):
 
         if len(output_results):
             #Переопределние инициализации на формат Ultralytics
-            bboxes = output_results.xywh
+            bboxes = results.xywhr if hasattr(results, "xywhr") else results.xywh
             bboxes = np.concatenate([bboxes, np.arange(len(bboxes)).reshape(-1, 1)], axis=-1)
-            scores = output_results.conf
-            classes = output_results.cls
+            scores = results.conf
+            classes = results.cls
 
 
             # Remove bad detections
