@@ -82,7 +82,7 @@ def on_predict_postprocess_end(predictor: object, persist: bool = False) -> None
         if len(tracks) == 0:
             continue
         idx = tracks[:, -1].astype(int)
-        print(len(im0s), idx, len(results), len(results[i]))
+        print(len(im0s), im0s[i], idx)
         predictor.results[i] = predictor.results[i][idx]
 
         update_args = {"obb" if is_obb else "boxes": torch.as_tensor(tracks[:, :-1])}
