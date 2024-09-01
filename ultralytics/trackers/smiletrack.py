@@ -7,7 +7,7 @@ from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
 from ultralytics.utils.downloads import safe_download
-from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYAH as KalmanFilter
+from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
 from ultralytics.trackers.SLM import load_model
@@ -56,7 +56,7 @@ class STrack(BaseTrack):
         tlwh_to_tlbr(tlwh): Convert tlwh bounding box to tlbr format.
     """
 
-    shared_kalman = KalmanFilterXYAH()
+    shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
         """Initialize new STrack instance."""
@@ -203,7 +203,14 @@ class STrack(BaseTrack):
 
     def convert_coords(self, tlwh):
         """Convert a bounding box's top-left-width-height format to its x-y-angle-height equivalent."""
-        return self.tlwh_to_xyah(tlwh)
+        return self.tlwh_to_xywh(tlwh)
+
+    @staticmethod
+    def tlwh_to_xywh(tlwh):
+        """Convert bounding box from tlwh (top-left-width-height) to xywh (center-x-center-y-width-height) format."""
+        ret = np.asarray(tlwh).copy()
+        ret[:2] += ret[2:] / 2
+        return ret
 
     @property
     def tlwh(self):
