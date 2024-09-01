@@ -283,8 +283,11 @@ class SMILEtrack(object):
         #                       self.weight_path)
         if self.args.with_reid:
             cur_dir = os.path.dirname(__file__)
-            filename = os.path.join(dirname, 'sm_weights/ver12.pt')
-            self.encoder = load_model(filename)
+            self.weight_path = os.path.join(cur_dir, 'sm_weights/ver12.pt')
+            if not os.path.exists(self.weight_path):
+                safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
+                              self.weight_path)
+            self.encoder = load_model(self.weight_path)
 
             if self.device == 'cuda' or self.device == 'cuda:0':
                 self.encoder = self.encoder.to(torch.device('cuda:0'))
