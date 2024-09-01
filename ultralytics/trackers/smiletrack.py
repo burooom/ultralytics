@@ -58,7 +58,7 @@ class SMTrack(STrack):
         >>> sm_track.update(new_track, frame_id=2)
     """
 
-    shared_kalman = KalmanFilterXYWH()
+    shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
         """
