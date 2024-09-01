@@ -60,7 +60,7 @@ class STrack(BaseTrack):
 
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
         """Initialize new STrack instance."""
-        self._tlwh = np.asarray(tlwh[:-1]), dtype=np.float32)
+        self._tlwh = np.asarray(tlwh[:-1], dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
