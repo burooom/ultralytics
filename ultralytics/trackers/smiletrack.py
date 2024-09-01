@@ -2,7 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
-from io import BytesIO
+import tempfile
+import os
 
 from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
@@ -283,9 +284,13 @@ class SMILEtrack(object):
         #         safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view',
         #                       self.weight_path)
         if self.args.with_reid:
-            tmp_obj = BytesIO()
-            tmp_obj.write(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
-            self.encoder = load_model(tmp_obj.read())
+            tmp = tempfile.NamedTemporaryFile(delete=False)
+            try:
+                tmp.write(safe_download('https://drive.google.com/file/d/1RDuVo7jYBkyBR4ngnBaVQUtHL8nAaGaL/view'))
+            finally:
+                self.encoder = load_model(tmp.read())
+                tmp.close()
+                os.unlink(tmp.name)
 
             if self.device == 'cuda' or self.device == 'cuda:0':
                 self.encoder = self.encoder.to(torch.device('cuda:0'))
