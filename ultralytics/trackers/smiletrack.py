@@ -159,7 +159,7 @@ class SMTrack(STrack):
         ret[2:] += ret[:2]
         return ret
 
-     @staticmethod
+    @staticmethod
     def tlbr_to_tlwh(tlbr):
         """Converts top-left bottom-right format to top-left width height format."""
         ret = np.asarray(tlbr).copy()
