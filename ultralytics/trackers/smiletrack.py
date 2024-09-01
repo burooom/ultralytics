@@ -7,6 +7,7 @@ from ultralytics.trackers.basetrack import BaseTrack, TrackState
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
 from ultralytics.utils.downloads import safe_download
+from ultralytics.utils.ops import xywh2ltwh
 from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
@@ -58,9 +59,9 @@ class STrack(BaseTrack):
 
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
+    def __init__(self, xywh, score, cls, feat=None, feat_history=50):
         """Initialize new STrack instance."""
-        self._tlwh = np.asarray(tlwh[:-1], dtype=np.float32)
+        self._tlwh = np.asarray(xywh2ltwh(xywh[:-1]), dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -68,8 +69,8 @@ class STrack(BaseTrack):
         self.score = score
         self.tracklet_len = 0
         self.cls = cls
-        self.idx = tlwh[-1]
-        self.angle = tlwh[4] if len(tlwh) == 6 else None
+        self.idx = xywh[:-1]
+        self.angle = xywh[4] if len(xywh) == 6 else None
 
         # SMILE FEATURES
         self.features = deque([], maxlen=feat_history)
