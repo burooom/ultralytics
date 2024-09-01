@@ -8,7 +8,6 @@ from ultralytics.trackers.byte_tracker import STrack
 from ultralytics.trackers.utils import matching
 from ultralytics.trackers.utils.gmc import GMC
 from ultralytics.utils.downloads import safe_download
-from ultralytics.utils.ops import xywh2ltwh
 from ultralytics.trackers.utils.kalman_filter import KalmanFilterXYWH as KalmanFilter
 
 # from fast_reid.fast_reid_interfece import FastReIDInterface
@@ -415,9 +414,7 @@ class SMILEtrack(object):
             self.removed_stracks = self.removed_stracks[-999:]  # clip remove stracks to 1000 maximum
 
         #Переопределение вывода на формат Ultralytics
-        return np.asarray(
-            [x.tlbr.tolist() + [x.track_id, x.score, x.cls, x.idx] for x in self.tracked_stracks if x.is_activated],
-            dtype=np.float32)
+        return np.asarray([x.result for x in self.tracked_stracks if x.is_activated], dtype=np.float32)
 
 
     def init_track(self, dets, scores, cls, features=None, img=None):
